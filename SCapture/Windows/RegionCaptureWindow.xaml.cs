@@ -2,7 +2,7 @@
 using SCapture.Classes;
 using SCapture.Properties;
 using System;
-using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -45,27 +45,31 @@ namespace SCapture.Windows
         {
             isDrawing = true;
 
-            Start = Mouse.GetPosition(Canvas1);
+            Start = e.GetPosition(Canvas1);
 
             Canvas.SetLeft(Rect, Start.X);
             Canvas.SetTop(Rect, Start.Y);
         }
 
-        private void Grid1_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private async void Grid1_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             isDrawing = false;
 
-            // Get DPI scale
-            var (scaleX, scaleY) = GetSystemDpiScale();
+            // Making sure the opacity is normal and the rectangle
+            // are not in the screenshot
+            Rect.Visibility = Visibility.Collapsed;
+            this.Opacity = 0;
+            await Task.Delay(200);
 
-            // Apply the DPI scaling
-            int dpiAdjustedX = (int)(X * scaleX);
-            int dpiAdjustedY = (int)(Y * scaleY);
-            int dpiAdjustedW = (int)(W * scaleX);
-            int dpiAdjustedH = (int)(H * scaleY);
+            System.Windows.Point actualStart = this.PointToScreen(Start);
+            System.Windows.Point actualCurrent = this.PointToScreen(Current);
 
-            // Capture the region with DPI adjustment
-            BitmapSource bSource = ScreenCapturer.CaptureRegion(dpiAdjustedX, dpiAdjustedY, dpiAdjustedW, dpiAdjustedH);
+            int captureX = (int)actualStart.X;
+            int captureY = (int)actualStart.Y;
+            int captureW = (int)Math.Abs(actualCurrent.X - actualStart.X);
+            int captureH = (int)Math.Abs(actualCurrent.Y - actualStart.Y);
+
+            BitmapSource bSource = ScreenCapturer.CaptureRegion(captureX, captureY, captureW, captureH);
 
             if (Settings.Default.AlwaysCopyToClipboard)
                 Clipboard.SetImage(bSource);
@@ -90,13 +94,13 @@ namespace SCapture.Windows
             if (isDrawing)
             {
                 // Get new position
-                Current = Mouse.GetPosition(Canvas1);
+                Current = e.GetPosition(Canvas1);
 
                 // Calculate rectangle cords/size
                 X = Math.Min(Current.X, Start.X);
                 Y = Math.Min(Current.Y, Start.Y);
-                W = Math.Max(Current.X, Start.X) - X;
-                H = Math.Max(Current.Y, Start.Y) - Y;
+                W = Math.Abs(Current.X - Start.X); // Use Abs to ensure positive width
+                H = Math.Abs(Current.Y - Start.Y);
 
                 Canvas.SetLeft(Rect, X);
                 Canvas.SetTop(Rect, Y);
@@ -106,21 +110,6 @@ namespace SCapture.Windows
                 Rect.Height = H;
                 Rect.SetValue(Canvas.LeftProperty, X);
                 Rect.SetValue(Canvas.TopProperty, Y);
-
-                // Toogle visibility
-                if (Rect.Visibility != Visibility.Visible)
-                    Rect.Visibility = Visibility.Visible;
-            }
-        }
-
-        //Method to get the DPI scale
-        private (double scaleX, double scaleY) GetSystemDpiScale()
-        {
-            using (Graphics graphics = Graphics.FromHwnd(IntPtr.Zero))
-            {
-                double dpiX = graphics.DpiX;
-                double dpiY = graphics.DpiY;
-                return (dpiX / 96.0, dpiY / 96.0); // 96 is the system DPI for 100% scaling
             }
         }
         #endregion

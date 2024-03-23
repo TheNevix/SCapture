@@ -1,5 +1,6 @@
 ﻿using SCapture.Properties;
 using System;
+using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
@@ -67,9 +68,13 @@ namespace SCapture.Classes
         /// <returns>The image captured</returns>
         public static BitmapSource CaptureFullScreen()
         {
-            return CaptureRegion(0, 0,
-                (int)SystemParameters.PrimaryScreenWidth,
-                (int)SystemParameters.PrimaryScreenHeight);
+            var (scaleX, scaleY) = GetSystemDpiScale();
+
+            // Get the entire screen size with DPI scaling applied
+            int screenWidth = (int)(SystemParameters.PrimaryScreenWidth * scaleX);
+            int screenHeight = (int)(SystemParameters.PrimaryScreenHeight * scaleY);
+
+            return CaptureRegion(0, 0, screenWidth, screenHeight);
         }
 
         /// <summary>
@@ -141,6 +146,19 @@ namespace SCapture.Classes
             }
 
             return true;
+        }
+        /// <summary>
+        /// Get DPI Scale
+        /// </summary>
+        /// <returns></returns>
+        public static (double scaleX, double scaleY) GetSystemDpiScale()
+        {
+            using (Graphics graphics = Graphics.FromHwnd(IntPtr.Zero))
+            {
+                double dpiX = graphics.DpiX;
+                double dpiY = graphics.DpiY;
+                return (dpiX / 96.0, dpiY / 96.0); // 96.0 is the base DPI for 100% scaling
+            }
         }
     }
 }
