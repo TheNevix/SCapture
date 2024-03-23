@@ -2,6 +2,7 @@
 using SCapture.Classes;
 using SCapture.Properties;
 using System;
+using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,12 +18,12 @@ namespace SCapture.Windows
         /// <summary>
         /// The start position of the Region Rectangle
         /// </summary>
-        private Point Start;
+        private System.Windows.Point Start;
 
         /// <summary>
         /// The end position of the Region Rectangle
         /// </summary>
-        private Point Current;
+        private System.Windows.Point Current;
 
         /// <summary>
         /// Determines weather the user is drawing region or not
@@ -54,8 +55,17 @@ namespace SCapture.Windows
         {
             isDrawing = false;
 
-            // Calculate rectangle cords/size
-            BitmapSource bSource = ScreenCapturer.CaptureRegion((int)X, (int)Y, (int)W, (int)H);
+            // Get DPI scale
+            var (scaleX, scaleY) = GetSystemDpiScale();
+
+            // Apply the DPI scaling
+            int dpiAdjustedX = (int)(X * scaleX);
+            int dpiAdjustedY = (int)(Y * scaleY);
+            int dpiAdjustedW = (int)(W * scaleX);
+            int dpiAdjustedH = (int)(H * scaleY);
+
+            // Capture the region with DPI adjustment
+            BitmapSource bSource = ScreenCapturer.CaptureRegion(dpiAdjustedX, dpiAdjustedY, dpiAdjustedW, dpiAdjustedH);
 
             if (Settings.Default.AlwaysCopyToClipboard)
                 Clipboard.SetImage(bSource);
@@ -100,6 +110,17 @@ namespace SCapture.Windows
                 // Toogle visibility
                 if (Rect.Visibility != Visibility.Visible)
                     Rect.Visibility = Visibility.Visible;
+            }
+        }
+
+        //Method to get the DPI scale
+        private (double scaleX, double scaleY) GetSystemDpiScale()
+        {
+            using (Graphics graphics = Graphics.FromHwnd(IntPtr.Zero))
+            {
+                double dpiX = graphics.DpiX;
+                double dpiY = graphics.DpiY;
+                return (dpiX / 96.0, dpiY / 96.0); // 96 is the system DPI for 100% scaling
             }
         }
         #endregion
