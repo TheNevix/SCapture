@@ -64,12 +64,15 @@ namespace SCapture.Windows
             System.Windows.Point actualStart = this.PointToScreen(Start);
             System.Windows.Point actualCurrent = this.PointToScreen(Current);
 
-            int captureX = (int)actualStart.X;
-            int captureY = (int)actualStart.Y;
-            int captureW = (int)Math.Abs(actualCurrent.X - actualStart.X);
-            int captureH = (int)Math.Abs(actualCurrent.Y - actualStart.Y);
+            // Determine the top-left corner of the selection rectangle
+            int selectionX = (int)Math.Min(actualStart.X, actualCurrent.X);
+            int selectionY = (int)Math.Min(actualStart.Y, actualCurrent.Y);
 
-            BitmapSource bSource = ScreenCapturer.CaptureRegion(captureX, captureY, captureW, captureH);
+            // Determine the width and height of the selection rectangle
+            int selectionW = (int)Math.Abs(actualCurrent.X - actualStart.X);
+            int selectionH = (int)Math.Abs(actualCurrent.Y - actualStart.Y);
+
+            BitmapSource bSource = ScreenCapturer.CaptureRegion(selectionX, selectionY, selectionW, selectionH);
 
             if (Settings.Default.AlwaysCopyToClipboard)
                 Clipboard.SetImage(bSource);
